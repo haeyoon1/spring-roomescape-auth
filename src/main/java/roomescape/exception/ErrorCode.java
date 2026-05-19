@@ -9,6 +9,8 @@ public enum ErrorCode {
 
     //401 - UNAUTHORIZED
     UNAUTHORIZED_NAME(HttpStatus.UNAUTHORIZED, "해당 예약을 삭제할 권한이 없습니다."),
+    UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다."),
+    LOGIN_FAILED(HttpStatus.UNAUTHORIZED, "아이디 또는 비밀번호가 일치하지 않습니다."),
 
     //404 - NOT_FOUND
     TIME_ID_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 time id를 찾을 수 없습니다."),
@@ -20,6 +22,7 @@ public enum ErrorCode {
     TIME_DELETE_NOT_ALLOWED(HttpStatus.CONFLICT, "예약이 존재하는 시간을 삭제할 수 없습니다."),
     DUPLICATE_RESERVATION_NAME(HttpStatus.CONFLICT, "해당 이름의 예약이 이미 존재합니다."),
     DUPLICATE_TIME(HttpStatus.CONFLICT, "이미 등록된 시작 시간입니다."),
+    DUPLICATE_USER_NAME(HttpStatus.CONFLICT, "이미 사용 중인 이름입니다."),
 
     //422 - UNPROCESSABLE CONTENT
     RESERVATION_TIME_PASSED(HttpStatus.UNPROCESSABLE_ENTITY, "이미 지난 날짜의 예약은 생성할 수 없습니다."),

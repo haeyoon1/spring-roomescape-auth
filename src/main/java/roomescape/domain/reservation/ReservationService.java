@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import roomescape.domain.reservation.dto.ReservationFixRequest;
 import roomescape.domain.reservation.dto.MyReservationsResponse;
 import roomescape.domain.reservation.dto.ReservationResponse;
+import roomescape.domain.user.User;
 import roomescape.exception.ErrorCode;
 import roomescape.exception.RoomescapeException;
 import roomescape.domain.theme.Theme;
@@ -33,7 +34,7 @@ public class ReservationService {
         this.adminThemeRepository = adminThemeRepository;
     }
 
-    public ReservationResponse createReservation(ReservationRequest request) {
+    public ReservationResponse createReservation(User user, ReservationRequest request) {
         ReservationTime time = reservationTimeRepository.findById(request.timeId())
             .orElseThrow(() -> new RoomescapeException(ErrorCode.TIME_ID_NOT_FOUND));
         Theme theme = adminThemeRepository.findById(request.themeId())
@@ -43,7 +44,7 @@ public class ReservationService {
         time.validateIfTimePast(request.date());
 
         Reservation reservation = Reservation.of(
-            request.name(),
+            user.getName(),
             request.date(),
             time,
             theme
@@ -62,38 +63,28 @@ public class ReservationService {
             .toList();
     }
 
-    public void deleteReservation(Long id) {
-        validateReservationId(id);
-        reservationRepository.deleteById(id);
-    }
-
-    public MyReservationsResponse getMyReservations(String name) {
-        List<Reservation> reservations = reservationRepository.findByName(name);
+    public MyReservationsResponse getMyReservations(User user) {
+        List<Reservation> reservations = reservationRepository.findByName(user.getName());
         return MyReservationsResponse.from(reservations);
     }
 
-    public void updateMyReservation(Long id, ReservationFixRequest fixRequest) {
+    public void deleteReservation(User user, Long id) {
         Reservation reservation = reservationRepository.findById(id)
             .orElseThrow(() -> new RoomescapeException(ErrorCode.RESERVATION_ID_NOT_FOUND));
-        validateFixRequest(reservation.getTheme(), fixRequest);
-        reservationTimeRepository.findById(fixRequest.timeId())
-            .orElseThrow(() -> new RoomescapeException(ErrorCode.TIME_ID_NOT_FOUND));
+        reservation.validateOwner(user.getName());
+        reservationRepository.deleteById(id);
+    }
 
-        reservation.validateOwner(fixRequest.name());
+    public void updateMyReservation(User user, Long id, ReservationFixRequest fixRequest) {
+        Reservation reservation = reservationRepository.findById(id)
+            .orElseThrow(() -> new RoomescapeException(ErrorCode.RESERVATION_ID_NOT_FOUND));
+        reservation.validateOwner(user.getName());
+        validateFixRequest(reservation.getTheme(), fixRequest);
 
         reservationRepository.updateDateAndTime(id, fixRequest.date(), fixRequest.timeId());
     }
 
-    private void validateReservationId(Long id) {
-        if (!reservationRepository.existsById(id)) {
-            throw new RoomescapeException(ErrorCode.RESERVATION_ID_NOT_FOUND);
-        }
-    }
-
     private void validateFixRequest(Theme theme, ReservationFixRequest newRequest) {
-        if (!reservationTimeRepository.existsById(newRequest.timeId())) {
-            throw new RoomescapeException(ErrorCode.TIME_ID_NOT_FOUND);
-        }
         ReservationTime newTime = reservationTimeRepository.findById(newRequest.timeId())
             .orElseThrow(() -> new RoomescapeException(ErrorCode.TIME_ID_NOT_FOUND));
         newTime.validateIfTimePast(newRequest.date());

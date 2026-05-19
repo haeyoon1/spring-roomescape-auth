@@ -1,8 +1,6 @@
 package roomescape.domain.reservation;
 
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import java.net.URI;
 import java.time.LocalDate;
 import java.util.List;
@@ -16,11 +14,13 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import roomescape.auth.Auth;
 import roomescape.domain.reservation.dto.ReservationFixRequest;
 import roomescape.domain.reservation.dto.ReservationRequest;
 import roomescape.domain.reservation.dto.MyReservationsResponse;
 import roomescape.domain.reservation.dto.ReservationResponse;
 import roomescape.domain.reservationtime.dto.TimeResponse;
+import roomescape.domain.user.User;
 
 @Validated
 @RestController
@@ -34,9 +34,10 @@ public class ReservationController {
 
     @PostMapping("/reservations")
     public ResponseEntity<ReservationResponse> createReservation(
+        @Auth User user,
         @RequestBody @Valid ReservationRequest request
     ) {
-        ReservationResponse response = reservationService.createReservation(request);
+        ReservationResponse response = reservationService.createReservation(user, request);
         URI location = URI.create("/reservations/" + response.id());
         return ResponseEntity.created(location).body(response);
     }
@@ -51,26 +52,28 @@ public class ReservationController {
 
     @GetMapping("/reservations/mine")
     public ResponseEntity<MyReservationsResponse> getMyReservations(
-        @RequestParam @NotBlank @Size(max = 100) String name
+        @Auth User user
     ) {
-        MyReservationsResponse response = reservationService.getMyReservations(name);
+        MyReservationsResponse response = reservationService.getMyReservations(user);
         return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/reservation/{id}")
     public ResponseEntity<Void> deleteReservation(
+        @Auth User user,
         @PathVariable Long id
     ) {
-        reservationService.deleteReservation(id);
+        reservationService.deleteReservation(user, id);
         return ResponseEntity.noContent().build();
     }
 
     @PatchMapping("/reservation/{id}")
     public ResponseEntity<Void> updateMyReservation(
+        @Auth User user,
         @PathVariable Long id,
         @RequestBody ReservationFixRequest request
     ) {
-        reservationService.updateMyReservation(id, request);
+        reservationService.updateMyReservation(user, id, request);
         return ResponseEntity.noContent().build();
     }
 }

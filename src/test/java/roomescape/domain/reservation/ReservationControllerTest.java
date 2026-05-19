@@ -39,14 +39,16 @@ class ReservationControllerTest {
     void 예약_정상_생성_확인_테스트() {
         Long themeId = insertTheme("테마1");
         Long timeId = insertTime("10:00", "11:00");
+        insertUser("유저1", "password1");
+        String sessionId = login("유저1", "password1");
 
         Map<String, Object> params = new HashMap<>();
-        params.put("name", "유저1");
         params.put("date", "2099-12-31");
         params.put("timeId", timeId);
         params.put("themeId", themeId);
 
         RestAssured.given().log().all()
+            .sessionId(sessionId)
             .contentType(ContentType.JSON)
             .body(params)
             .when().post("/reservations")
@@ -60,36 +62,19 @@ class ReservationControllerTest {
     }
 
     @Test
-    void createReservation_이름이_비어있는경우_에러_반환_테스트() {
-        Long themeId = insertTheme("테마1");
-        Long timeId = insertTime("10:00", "11:00");
-
-        Map<String, Object> params = new HashMap<>();
-        params.put("name", "");
-        params.put("date", "2099-12-31");
-        params.put("timeId", timeId);
-        params.put("themeId", themeId);
-
-        RestAssured.given().log().all()
-            .contentType(ContentType.JSON)
-            .body(params)
-            .when().post("/reservations")
-            .then().log().all()
-            .statusCode(400);
-    }
-
-    @Test
     void createReservation_과거_날짜인경우_에러_반환_테스트() {
         Long themeId = insertTheme("테마1");
         Long timeId = insertTime("10:00", "11:00");
+        insertUser("유저1", "password1");
+        String sessionId = login("유저1", "password1");
 
         Map<String, Object> params = new HashMap<>();
-        params.put("name", "유저1");
         params.put("date", "2000-01-01");
         params.put("timeId", timeId);
         params.put("themeId", themeId);
 
         RestAssured.given().log().all()
+            .sessionId(sessionId)
             .contentType(ContentType.JSON)
             .body(params)
             .when().post("/reservations")
@@ -102,14 +87,16 @@ class ReservationControllerTest {
         Long themeId = insertTheme("테마1");
         Long timeId = insertTime("10:00", "11:00");
         insertReservation("유저1", "2099-12-31", timeId, themeId);
+        insertUser("유저2", "password2");
+        String sessionId = login("유저2", "password2");
 
         Map<String, Object> params = new HashMap<>();
-        params.put("name", "유저2");
         params.put("date", "2099-12-31");
         params.put("timeId", timeId);
         params.put("themeId", themeId);
 
         RestAssured.given().log().all()
+            .sessionId(sessionId)
             .contentType(ContentType.JSON)
             .body(params)
             .when().post("/reservations")
@@ -120,14 +107,16 @@ class ReservationControllerTest {
     @Test
     void createReservation_존재하지_않는_시간_id인경우_에러_반환_테스트() {
         Long themeId = insertTheme("테마1");
+        insertUser("유저1", "password1");
+        String sessionId = login("유저1", "password1");
 
         Map<String, Object> params = new HashMap<>();
-        params.put("name", "유저1");
         params.put("date", "2099-12-31");
         params.put("timeId", 999L);
         params.put("themeId", themeId);
 
         RestAssured.given().log().all()
+            .sessionId(sessionId)
             .contentType(ContentType.JSON)
             .body(params)
             .when().post("/reservations")
@@ -138,14 +127,16 @@ class ReservationControllerTest {
     @Test
     void createReservation_존재하지_않는_테마_id인경우_에러_반환_테스트() {
         Long timeId = insertTime("10:00", "11:00");
+        insertUser("유저1", "password1");
+        String sessionId = login("유저1", "password1");
 
         Map<String, Object> params = new HashMap<>();
-        params.put("name", "유저1");
         params.put("date", "2099-12-31");
         params.put("timeId", timeId);
         params.put("themeId", 999L);
 
         RestAssured.given().log().all()
+            .sessionId(sessionId)
             .contentType(ContentType.JSON)
             .body(params)
             .when().post("/reservations")
@@ -189,9 +180,13 @@ class ReservationControllerTest {
         insertReservation("유저1", "2099-12-31", timeId, themeId);
         insertReservation("유저1", "2099-12-30", timeId, themeId);
         insertReservation("유저2", "2099-12-29", timeId, themeId);
+        insertUser("유저1", "password1");
+
+        String sessionId = login("유저1", "password1");
 
         RestAssured.given().log().all()
-            .when().get("/reservations/mine?name=유저1")
+            .sessionId(sessionId)
+            .when().get("/reservations/mine")
             .then().log().all()
             .statusCode(200)
             .body("reservations.size()", is(2))
@@ -201,8 +196,12 @@ class ReservationControllerTest {
 
     @Test
     void 나의_예약_조회_예약이_없는경우_빈_리스트_반환_테스트() {
+        insertUser("없는유저", "password");
+        String sessionId = login("없는유저", "password");
+
         RestAssured.given().log().all()
-            .when().get("/reservations/mine?name=없는유저")
+            .sessionId(sessionId)
+            .when().get("/reservations/mine")
             .then().log().all()
             .statusCode(200)
             .body("reservations", is(empty()));
@@ -213,8 +212,12 @@ class ReservationControllerTest {
         Long themeId = insertTheme("테마1");
         Long timeId = insertTime("10:00", "11:00");
         Long reservationId = insertReservation("유저1", "2099-12-31", timeId, themeId);
+        insertUser("유저1", "password1");
+
+        String sessionId = login("유저1", "password1");
 
         RestAssured.given().log().all()
+            .sessionId(sessionId)
             .when().delete("/reservation/" + reservationId)
             .then().log().all()
             .statusCode(204);
@@ -227,7 +230,11 @@ class ReservationControllerTest {
 
     @Test
     void deleteReservation_존재하지_않는_id인경우_에러_반환_테스트() {
+        insertUser("유저1", "password1");
+        String sessionId = login("유저1", "password1");
+
         RestAssured.given().log().all()
+            .sessionId(sessionId)
             .when().delete("/reservation/999")
             .then().log().all()
             .statusCode(404);
@@ -239,13 +246,16 @@ class ReservationControllerTest {
         Long timeId1 = insertTime("10:00", "11:00");
         Long timeId2 = insertTime("11:00", "12:00");
         Long reservationId = insertReservation("유저1", "2099-12-30", timeId1, themeId);
+        insertUser("유저1", "password1");
 
         Map<String, Object> params = new HashMap<>();
-        params.put("name", "유저1");
         params.put("date", "2099-12-31");
         params.put("timeId", timeId2);
 
+        String sessionId = login("유저1", "password1");
+
         RestAssured.given().log().all()
+            .sessionId(sessionId)
             .contentType(ContentType.JSON)
             .body(params)
             .when().patch("/reservation/" + reservationId)
@@ -269,13 +279,16 @@ class ReservationControllerTest {
         Long themeId = insertTheme("테마1");
         Long timeId = insertTime("10:00", "11:00");
         Long reservationId = insertReservation("유저1", "2099-12-30", timeId, themeId);
+        insertUser("다른유저", "password");
 
         Map<String, Object> params = new HashMap<>();
-        params.put("name", "다른유저");
         params.put("date", "2099-12-31");
         params.put("timeId", timeId);
 
+        String sessionId = login("다른유저", "password");
+
         RestAssured.given().log().all()
+            .sessionId(sessionId)
             .contentType(ContentType.JSON)
             .body(params)
             .when().patch("/reservation/" + reservationId)
@@ -286,13 +299,16 @@ class ReservationControllerTest {
     @Test
     void updateMyReservation_존재하지_않는_id인경우_에러_반환_테스트() {
         Long timeId = insertTime("10:00", "11:00");
+        insertUser("유저1", "password1");
 
         Map<String, Object> params = new HashMap<>();
-        params.put("name", "유저1");
         params.put("date", "2099-12-31");
         params.put("timeId", timeId);
 
+        String sessionId = login("유저1", "password1");
+
         RestAssured.given().log().all()
+            .sessionId(sessionId)
             .contentType(ContentType.JSON)
             .body(params)
             .when().patch("/reservation/999")
@@ -305,13 +321,16 @@ class ReservationControllerTest {
         Long themeId = insertTheme("테마1");
         Long timeId = insertTime("10:00", "11:00");
         Long reservationId = insertReservation("유저1", "2099-12-30", timeId, themeId);
+        insertUser("유저1", "password1");
 
         Map<String, Object> params = new HashMap<>();
-        params.put("name", "유저1");
         params.put("date", "2099-12-31");
         params.put("timeId", 999L);
 
+        String sessionId = login("유저1", "password1");
+
         RestAssured.given().log().all()
+            .sessionId(sessionId)
             .contentType(ContentType.JSON)
             .body(params)
             .when().patch("/reservation/" + reservationId)
@@ -324,18 +343,41 @@ class ReservationControllerTest {
         Long themeId = insertTheme("테마1");
         Long timeId = insertTime("10:00", "11:00");
         Long reservationId = insertReservation("유저1", "2099-12-30", timeId, themeId);
+        insertUser("유저1", "password1");
 
         Map<String, Object> params = new HashMap<>();
-        params.put("name", "유저1");
         params.put("date", "2000-01-01");
         params.put("timeId", timeId);
 
+        String sessionId = login("유저1", "password1");
+
         RestAssured.given().log().all()
+            .sessionId(sessionId)
             .contentType(ContentType.JSON)
             .body(params)
             .when().patch("/reservation/" + reservationId)
             .then().log().all()
             .statusCode(422);
+    }
+
+    private String login(String name, String password) {
+        Map<String, Object> loginParams = new HashMap<>();
+        loginParams.put("name", name);
+        loginParams.put("password", password);
+
+        return RestAssured.given()
+            .contentType(ContentType.JSON)
+            .body(loginParams)
+            .when().post("/login")
+            .then().statusCode(204)
+            .extract().sessionId();
+    }
+
+    private void insertUser(String name, String password) {
+        jdbcTemplate.update(
+            "INSERT INTO users (name, password) VALUES (?, ?)",
+            name, password
+        );
     }
 
     private Long insertTheme(String name) {

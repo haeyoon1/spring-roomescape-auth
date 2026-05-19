@@ -28,6 +28,7 @@ import roomescape.domain.reservationtime.ReservationTime;
 import roomescape.domain.reservationtime.ReservationTimeRepository;
 import roomescape.domain.reservationtime.dto.TimeResponse;
 import roomescape.domain.theme.Theme;
+import roomescape.domain.user.User;
 import roomescape.exception.ErrorCode;
 import roomescape.exception.RoomescapeException;
 
@@ -48,11 +49,15 @@ class ReservationServiceTest {
 
     private ReservationTime time;
     private Theme theme;
+    private User user;
+    private User other;
 
     @BeforeEach
     void setUp() {
         time = ReservationTime.of(1L, LocalTime.of(10, 0), LocalTime.of(11, 0));
         theme = Theme.of(1L, "테마1", "설명", "https://example.com/image.jpg");
+        user = User.of(1L, "유저1", "password1");
+        other = User.of(2L, "다른유저", "password2");
     }
 
     @Nested
@@ -61,58 +66,58 @@ class ReservationServiceTest {
 
         @Test
         void 정상_생성() {
-            ReservationRequest request = new ReservationRequest("유저1", LocalDate.of(2099, 12, 31), 1L, 1L);
+            ReservationRequest request = new ReservationRequest(LocalDate.of(2099, 12, 31), 1L, 1L);
             Reservation saved = Reservation.of(1L, "유저1", LocalDate.of(2099, 12, 31), time, theme);
             when(reservationTimeRepository.findById(1L)).thenReturn(Optional.of(time));
             when(adminThemeRepository.findById(1L)).thenReturn(Optional.of(theme));
             when(reservationRepository.existsByDateAndTimeIdAndThemeId(request.date(), 1L, 1L)).thenReturn(false);
             when(reservationRepository.save(any(Reservation.class))).thenReturn(saved);
 
-            reservationService.createReservation(request);
+            reservationService.createReservation(user, request);
 
             verify(reservationRepository, times(1)).save(any(Reservation.class));
         }
 
         @Test
         void 시간_id가_없으면_예외() {
-            ReservationRequest request = new ReservationRequest("유저1", LocalDate.of(2099, 12, 31), 99L, 1L);
+            ReservationRequest request = new ReservationRequest(LocalDate.of(2099, 12, 31), 99L, 1L);
             when(reservationTimeRepository.findById(99L)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> reservationService.createReservation(request))
+            assertThatThrownBy(() -> reservationService.createReservation(user, request))
                 .isInstanceOf(RoomescapeException.class)
                 .extracting("errorCode").isEqualTo(ErrorCode.TIME_ID_NOT_FOUND);
         }
 
         @Test
         void 테마_id가_없으면_예외() {
-            ReservationRequest request = new ReservationRequest("유저1", LocalDate.of(2099, 12, 31), 1L, 99L);
+            ReservationRequest request = new ReservationRequest(LocalDate.of(2099, 12, 31), 1L, 99L);
             when(reservationTimeRepository.findById(1L)).thenReturn(Optional.of(time));
             when(adminThemeRepository.findById(99L)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> reservationService.createReservation(request))
+            assertThatThrownBy(() -> reservationService.createReservation(user, request))
                 .isInstanceOf(RoomescapeException.class)
                 .extracting("errorCode").isEqualTo(ErrorCode.THEME_ID_NOT_FOUND);
         }
 
         @Test
         void 과거_날짜면_예외() {
-            ReservationRequest request = new ReservationRequest("유저1", LocalDate.of(2000, 1, 1), 1L, 1L);
+            ReservationRequest request = new ReservationRequest(LocalDate.of(2000, 1, 1), 1L, 1L);
             when(reservationTimeRepository.findById(1L)).thenReturn(Optional.of(time));
             when(adminThemeRepository.findById(1L)).thenReturn(Optional.of(theme));
 
-            assertThatThrownBy(() -> reservationService.createReservation(request))
+            assertThatThrownBy(() -> reservationService.createReservation(user, request))
                 .isInstanceOf(RoomescapeException.class)
                 .extracting("errorCode").isEqualTo(ErrorCode.RESERVATION_TIME_PASSED);
         }
 
         @Test
         void 중복_예약이면_예외() {
-            ReservationRequest request = new ReservationRequest("유저1", LocalDate.of(2099, 12, 31), 1L, 1L);
+            ReservationRequest request = new ReservationRequest(LocalDate.of(2099, 12, 31), 1L, 1L);
             when(reservationTimeRepository.findById(1L)).thenReturn(Optional.of(time));
             when(adminThemeRepository.findById(1L)).thenReturn(Optional.of(theme));
             when(reservationRepository.existsByDateAndTimeIdAndThemeId(request.date(), 1L, 1L)).thenReturn(true);
 
-            assertThatThrownBy(() -> reservationService.createReservation(request))
+            assertThatThrownBy(() -> reservationService.createReservation(user, request))
                 .isInstanceOf(RoomescapeException.class)
                 .extracting("errorCode").isEqualTo(ErrorCode.DUPLICATE_RESERVATION);
         }
@@ -158,20 +163,31 @@ class ReservationServiceTest {
 
         @Test
         void 정상_삭제() {
-            when(reservationRepository.existsById(1L)).thenReturn(true);
+            Reservation reservation = Reservation.of(1L, "유저1", LocalDate.of(2099, 12, 31), time, theme);
+            when(reservationRepository.findById(1L)).thenReturn(Optional.of(reservation));
 
-            reservationService.deleteReservation(1L);
+            reservationService.deleteReservation(user, 1L);
 
             verify(reservationRepository, times(1)).deleteById(1L);
         }
 
         @Test
         void 존재하지_않는_id면_예외() {
-            when(reservationRepository.existsById(99L)).thenReturn(false);
+            when(reservationRepository.findById(99L)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> reservationService.deleteReservation(99L))
+            assertThatThrownBy(() -> reservationService.deleteReservation(user, 99L))
                 .isInstanceOf(RoomescapeException.class)
                 .extracting("errorCode").isEqualTo(ErrorCode.RESERVATION_ID_NOT_FOUND);
+        }
+
+        @Test
+        void 권한이_없으면_예외() {
+            Reservation reservation = Reservation.of(1L, "유저1", LocalDate.of(2099, 12, 31), time, theme);
+            when(reservationRepository.findById(1L)).thenReturn(Optional.of(reservation));
+
+            assertThatThrownBy(() -> reservationService.deleteReservation(other, 1L))
+                .isInstanceOf(RoomescapeException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.UNAUTHORIZED_NAME);
         }
     }
 
@@ -184,7 +200,7 @@ class ReservationServiceTest {
             Reservation reservation = Reservation.of(1L, "유저1", LocalDate.of(2099, 12, 31), time, theme);
             when(reservationRepository.findByName("유저1")).thenReturn(List.of(reservation));
 
-            MyReservationsResponse response = reservationService.getMyReservations("유저1");
+            MyReservationsResponse response = reservationService.getMyReservations(user);
 
             assertAll(
                 () -> assertThat(response.reservations()).hasSize(1),
@@ -195,9 +211,10 @@ class ReservationServiceTest {
 
         @Test
         void 결과가_없으면_빈_리스트() {
+            User unknown = User.of(99L, "없는유저", "password");
             when(reservationRepository.findByName("없는유저")).thenReturn(List.of());
 
-            MyReservationsResponse response = reservationService.getMyReservations("없는유저");
+            MyReservationsResponse response = reservationService.getMyReservations(unknown);
 
             assertThat(response.reservations()).isEmpty();
         }
@@ -210,24 +227,23 @@ class ReservationServiceTest {
         @Test
         void 정상_수정() {
             Reservation reservation = Reservation.of(1L, "유저1", LocalDate.of(2099, 12, 30), time, theme);
-            ReservationFixRequest request = new ReservationFixRequest("유저1", LocalDate.of(2099, 12, 31), 1L);
+            ReservationFixRequest request = new ReservationFixRequest(LocalDate.of(2099, 12, 31), 1L);
 
             when(reservationRepository.findById(1L)).thenReturn(Optional.of(reservation));
-            when(reservationTimeRepository.existsById(1L)).thenReturn(true);
             when(reservationTimeRepository.findById(1L)).thenReturn(Optional.of(time));
             when(reservationRepository.existsByDateAndTimeIdAndThemeId(request.date(), 1L, 1L)).thenReturn(false);
 
-            reservationService.updateMyReservation(1L, request);
+            reservationService.updateMyReservation(user, 1L, request);
 
             verify(reservationRepository, times(1)).updateDateAndTime(1L, request.date(), 1L);
         }
 
         @Test
         void 존재하지_않는_예약이면_예외() {
-            ReservationFixRequest request = new ReservationFixRequest("유저1", LocalDate.of(2099, 12, 31), 1L);
+            ReservationFixRequest request = new ReservationFixRequest(LocalDate.of(2099, 12, 31), 1L);
             when(reservationRepository.findById(99L)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> reservationService.updateMyReservation(99L, request))
+            assertThatThrownBy(() -> reservationService.updateMyReservation(user, 99L, request))
                 .isInstanceOf(RoomescapeException.class)
                 .extracting("errorCode").isEqualTo(ErrorCode.RESERVATION_ID_NOT_FOUND);
         }
@@ -235,12 +251,12 @@ class ReservationServiceTest {
         @Test
         void 존재하지_않는_시간이면_예외() {
             Reservation reservation = Reservation.of(1L, "유저1", LocalDate.of(2099, 12, 30), time, theme);
-            ReservationFixRequest request = new ReservationFixRequest("유저1", LocalDate.of(2099, 12, 31), 99L);
+            ReservationFixRequest request = new ReservationFixRequest(LocalDate.of(2099, 12, 31), 99L);
 
             when(reservationRepository.findById(1L)).thenReturn(Optional.of(reservation));
-            when(reservationTimeRepository.existsById(99L)).thenReturn(false);
+            when(reservationTimeRepository.findById(99L)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> reservationService.updateMyReservation(1L, request))
+            assertThatThrownBy(() -> reservationService.updateMyReservation(user, 1L, request))
                 .isInstanceOf(RoomescapeException.class)
                 .extracting("errorCode").isEqualTo(ErrorCode.TIME_ID_NOT_FOUND);
         }
@@ -248,14 +264,11 @@ class ReservationServiceTest {
         @Test
         void 권한이_없으면_예외() {
             Reservation reservation = Reservation.of(1L, "유저1", LocalDate.of(2099, 12, 30), time, theme);
-            ReservationFixRequest request = new ReservationFixRequest("다른유저", LocalDate.of(2099, 12, 31), 1L);
+            ReservationFixRequest request = new ReservationFixRequest(LocalDate.of(2099, 12, 31), 1L);
 
             when(reservationRepository.findById(1L)).thenReturn(Optional.of(reservation));
-            when(reservationTimeRepository.existsById(1L)).thenReturn(true);
-            when(reservationTimeRepository.findById(1L)).thenReturn(Optional.of(time));
-            when(reservationRepository.existsByDateAndTimeIdAndThemeId(request.date(), 1L, 1L)).thenReturn(false);
 
-            assertThatThrownBy(() -> reservationService.updateMyReservation(1L, request))
+            assertThatThrownBy(() -> reservationService.updateMyReservation(other, 1L, request))
                 .isInstanceOf(RoomescapeException.class)
                 .extracting("errorCode").isEqualTo(ErrorCode.UNAUTHORIZED_NAME);
         }
@@ -263,13 +276,12 @@ class ReservationServiceTest {
         @Test
         void 과거_날짜면_예외() {
             Reservation reservation = Reservation.of(1L, "유저1", LocalDate.of(2099, 12, 30), time, theme);
-            ReservationFixRequest request = new ReservationFixRequest("유저1", LocalDate.of(2000, 1, 1), 1L);
+            ReservationFixRequest request = new ReservationFixRequest(LocalDate.of(2000, 1, 1), 1L);
 
             when(reservationRepository.findById(1L)).thenReturn(Optional.of(reservation));
-            when(reservationTimeRepository.existsById(1L)).thenReturn(true);
             when(reservationTimeRepository.findById(1L)).thenReturn(Optional.of(time));
 
-            assertThatThrownBy(() -> reservationService.updateMyReservation(1L, request))
+            assertThatThrownBy(() -> reservationService.updateMyReservation(user, 1L, request))
                 .isInstanceOf(RoomescapeException.class)
                 .extracting("errorCode").isEqualTo(ErrorCode.RESERVATION_TIME_PASSED);
         }
@@ -277,14 +289,13 @@ class ReservationServiceTest {
         @Test
         void 중복_예약이면_예외() {
             Reservation reservation = Reservation.of(1L, "유저1", LocalDate.of(2099, 12, 30), time, theme);
-            ReservationFixRequest request = new ReservationFixRequest("유저1", LocalDate.of(2099, 12, 31), 1L);
+            ReservationFixRequest request = new ReservationFixRequest(LocalDate.of(2099, 12, 31), 1L);
 
             when(reservationRepository.findById(1L)).thenReturn(Optional.of(reservation));
-            when(reservationTimeRepository.existsById(1L)).thenReturn(true);
             when(reservationTimeRepository.findById(1L)).thenReturn(Optional.of(time));
             when(reservationRepository.existsByDateAndTimeIdAndThemeId(request.date(), 1L, 1L)).thenReturn(true);
 
-            assertThatThrownBy(() -> reservationService.updateMyReservation(1L, request))
+            assertThatThrownBy(() -> reservationService.updateMyReservation(user, 1L, request))
                 .isInstanceOf(RoomescapeException.class)
                 .extracting("errorCode").isEqualTo(ErrorCode.DUPLICATE_RESERVATION);
         }

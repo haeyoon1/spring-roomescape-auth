@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>회원가입 — ESCAPE ROOM</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a href="/admin/theme" class="admin-entry" title="관리자 페이지">
+      <i class="fas fa-user-shield"></i><span>관리자</span>
+    </a>
+    <a href="/" class="brand">
+      <span class="brand-mark"><i class="fas fa-key"></i></span>
+      ESCAPE ROOM
+    </a>
+    <button type="button" class="nav-toggle" aria-label="메뉴"><i class="fas fa-bars"></i></button>
+    <nav class="nav">
+      <a href="/">홈</a>
+      <a href="/popular">인기 테마</a>
+      <a href="/reservation">예약하기</a>
+    </nav>
+  </div>
+</header>
+
+<main class="container" style="max-width: 420px;">
+  <h1 class="page-title" style="text-align:center;">
+    <i class="fas fa-user-plus" style="color:var(--accent);margin-right:10px;"></i>회원가입
+  </h1>
+  <p class="page-subtitle" style="text-align:center;">이름과 비밀번호로 가입할 수 있습니다.</p>
+
+  <form id="signup-form" class="filter-card" style="display:flex;flex-direction:column;gap:14px;">
+    <div>
+      <label class="form-label" for="signup-name">이름</label>
+      <input id="signup-name" name="name" type="text" class="form-control" placeholder="2~20자" autocomplete="username" minlength="2" maxlength="20" required>
+    </div>
+    <div>
+      <label class="form-label" for="signup-password">비밀번호</label>
+      <input id="signup-password" name="password" type="password" class="form-control" placeholder="4자 이상" autocomplete="new-password" minlength="4" maxlength="50" required>
+    </div>
+    <button type="submit" class="btn btn-primary btn-lg">
+      <i class="fas fa-user-plus"></i> 가입하기
+    </button>
+    <p id="signup-error" class="text-muted d-none" style="color: var(--danger) !important; text-align:center; margin:0;"></p>
+    <p style="text-align:center; margin:8px 0 0; font-size:0.9rem; color:var(--text-muted);">
+      이미 계정이 있으신가요? <a href="/login" style="color:var(--accent); font-weight:600;">로그인</a>
+    </p>
+  </form>
+</main>
+
+<script src="/js/nav.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/signup.js"></script>
+</body>
+</html>

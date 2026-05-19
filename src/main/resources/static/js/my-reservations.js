@@ -1,30 +1,35 @@
-const RESERVATION_API = '/reservations';
 const MY_RESERVATIONS_API = '/reservations/mine';
 const TIMES_API = '/times';
 
 let timesCache = [];
-let currentName = '';
 
 document.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('search-btn').addEventListener('click', searchReservations);
-  document.getElementById('search-name').addEventListener('keydown', e => {
-    if (e.key === 'Enter') searchReservations();
-  });
-  apiFetch(TIMES_API).then(data => { timesCache = data || []; }).catch(showError);
+  bootstrap();
 });
 
-function searchReservations() {
-  const name = document.getElementById('search-name').value.trim();
-  if (!name) {
-    alert('예약자 이름을 입력해주세요.');
-    return;
-  }
-  currentName = name;
-  document.getElementById('reservation-hint').classList.add('d-none');
+function bootstrap() {
+  apiFetch('/login/check')
+    .then(user => {
+      if (user && user.name) {
+        document.getElementById('my-greeting').textContent =
+          `${user.name}님의 예약 내역입니다.`;
+      }
+      return apiFetch(TIMES_API);
+    })
+    .then(times => { timesCache = times || []; })
+    .then(loadMyReservations)
+    .catch(handleAuthError);
+}
 
-  apiFetch(`${MY_RESERVATIONS_API}?name=${encodeURIComponent(name)}`)
-    .then(data => renderReservations(data.reservations || []))
-    .catch(showError);
+function handleAuthError(err) {
+  if (redirectToLoginIfUnauthorized(err)) return;
+  showError(err);
+}
+
+function loadMyReservations() {
+  return apiFetch(MY_RESERVATIONS_API)
+    .then(data => renderReservations((data && data.reservations) || []))
+    .catch(handleAuthError);
 }
 
 function renderReservations(reservations) {
@@ -46,7 +51,7 @@ function buildRow(r) {
   row.dataset.id = r.id;
 
   row.appendChild(cell(r.id));
-  row.appendChild(cell(r.theme ? r.theme.name : '-'));
+  row.appendChild(cell(r.themeName || '-'));
   row.appendChild(cell(r.date));
   row.appendChild(cell(formatTime(r.time)));
 
@@ -84,12 +89,12 @@ function startEdit(row, r) {
   actions.innerHTML = '';
   actions.className = 'actions-cell';
   actions.appendChild(button('저장', 'btn btn-success btn-sm', () => {
-    saveEdit(row, r.id, dateInput.value, parseInt(timeSelect.value));
+    saveEdit(r.id, dateInput.value, parseInt(timeSelect.value));
   }));
-  actions.appendChild(button('취소', 'btn btn-ghost btn-sm', () => searchReservations()));
+  actions.appendChild(button('취소', 'btn btn-ghost btn-sm', () => loadMyReservations()));
 }
 
-function saveEdit(row, id, date, timeId) {
+function saveEdit(id, date, timeId) {
   if (!date || !timeId) {
     alert('날짜와 시간을 선택해주세요.');
     return;
@@ -97,11 +102,11 @@ function saveEdit(row, id, date, timeId) {
   apiFetch(`/reservation/${id}`, {
     method: 'PATCH',
     headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({ name: currentName, date, timeId })
+    body: JSON.stringify({ date, timeId })
   })
     .then(() => {
       alert('예약이 수정되었습니다.');
-      searchReservations();
+      loadMyReservations();
     })
     .catch(showError);
 }

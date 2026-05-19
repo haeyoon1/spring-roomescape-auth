@@ -12,7 +12,6 @@ const state = {
 document.addEventListener('DOMContentLoaded', () => {
   initCalendar();
   loadThemes();
-
   document.getElementById('confirm-booking').addEventListener('click', confirmBooking);
   document.getElementById('cancel-booking').addEventListener('click', clearBookingBar);
 });
@@ -153,24 +152,17 @@ function showBookingBar() {
   document.getElementById('booking-summary-text').textContent =
     `${state.date} · ${state.themeName} · ${formatTime(state.timeText)}`;
   bar.classList.remove('d-none');
-  document.getElementById('booking-name').focus();
 }
 
 function clearBookingBar() {
   const bar = document.getElementById('booking-bar');
   bar.classList.add('d-none');
-  document.getElementById('booking-name').value = '';
   state.timeId = null;
   state.timeText = null;
   document.querySelectorAll('#time-list .time-btn').forEach(el => el.classList.remove('active'));
 }
 
 function confirmBooking() {
-  const name = document.getElementById('booking-name').value.trim();
-  if (!name) {
-    alert('예약자 이름을 입력해주세요.');
-    return;
-  }
   if (!state.date || !state.themeId || !state.timeId) {
     alert('날짜·테마·시간을 모두 선택해주세요.');
     return;
@@ -180,7 +172,6 @@ function confirmBooking() {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({
-      name,
       date: state.date,
       timeId: state.timeId,
       themeId: state.themeId
@@ -190,5 +181,8 @@ function confirmBooking() {
       alert('예약이 완료되었습니다.');
       refreshTimes();
     })
-    .catch(showError);
+    .catch(err => {
+      if (redirectToLoginIfUnauthorized(err)) return;
+      showError(err);
+    });
 }

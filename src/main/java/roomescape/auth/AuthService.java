@@ -1,5 +1,6 @@
 package roomescape.auth;
 
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import roomescape.auth.dto.LoginRequest;
 import roomescape.auth.dto.SignupRequest;
@@ -12,15 +13,19 @@ import roomescape.exception.RoomescapeException;
 public class AuthService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public AuthService(UserRepository userRepository) {
+    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public User login(LoginRequest request) {
         User user = userRepository.findByName(request.name())
             .orElseThrow(() -> new RoomescapeException(ErrorCode.LOGIN_FAILED));
-        user.validatePassword(request.password());
+        if (!passwordEncoder.matches(request.password(), user.getPassword())) {
+            throw new RoomescapeException(ErrorCode.LOGIN_FAILED);
+        }
         return user;
     }
 
@@ -28,6 +33,7 @@ public class AuthService {
         if (userRepository.existsByName(request.name())) {
             throw new RoomescapeException(ErrorCode.DUPLICATE_USER_NAME);
         }
-        return userRepository.save(User.of(null, request.name(), request.password()));
+        String encodedPassword = passwordEncoder.encode(request.password());
+        return userRepository.save(User.of(null, request.name(), encodedPassword));
     }
 }

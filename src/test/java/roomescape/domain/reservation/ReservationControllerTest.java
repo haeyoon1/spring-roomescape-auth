@@ -17,6 +17,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 
@@ -29,6 +30,9 @@ class ReservationControllerTest {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @BeforeEach
     void setUp() {
@@ -376,7 +380,7 @@ class ReservationControllerTest {
     private void insertUser(String name, String password) {
         jdbcTemplate.update(
             "INSERT INTO users (name, password) VALUES (?, ?)",
-            name, password
+            name, passwordEncoder.encode(password)
         );
     }
 

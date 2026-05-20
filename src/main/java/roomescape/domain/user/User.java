@@ -1,8 +1,5 @@
 package roomescape.domain.user;
 
-import roomescape.exception.ErrorCode;
-import roomescape.exception.RoomescapeException;
-
 public class User {
 
     private final Long id;
@@ -17,12 +14,6 @@ public class User {
 
     public static User of(Long id, String name, String password) {
         return new User(id, name, password);
-    }
-
-    public void validatePassword(String inputPassword) {
-        if (!password.equals(inputPassword)) {
-            throw new RoomescapeException(ErrorCode.LOGIN_FAILED);
-        }
     }
 
     public Long getId() {

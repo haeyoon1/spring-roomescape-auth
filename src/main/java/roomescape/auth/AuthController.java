@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import roomescape.auth.dto.LoginCheckResponse;
 import roomescape.auth.dto.LoginRequest;
+import roomescape.auth.dto.LoginResponse;
 import roomescape.auth.dto.SignupRequest;
 import roomescape.domain.user.User;
 
@@ -20,31 +21,33 @@ public class AuthController {
     static final String LOGIN_USER_ID = "loginUserId";
 
     private final AuthService authService;
+    private final JwtTokenProvider jwtTokenProvider;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, JwtTokenProvider jwtTokenProvider) {
         this.authService = authService;
+        this.jwtTokenProvider = jwtTokenProvider;
     }
 
     @PostMapping("/login")
-    public ResponseEntity<Void> login(
+    public ResponseEntity<LoginResponse> login(
         @RequestBody @Valid LoginRequest request,
         HttpServletRequest httpRequest
     ) {
         User user = authService.login(request);
-        HttpSession session = httpRequest.getSession(true);
-        session.setAttribute(LOGIN_USER_ID, user.getId());
-        return ResponseEntity.noContent().build();
+        startSession(httpRequest, user);
+        return ResponseEntity.ok(LoginResponse.bearer(jwtTokenProvider.createAccessToken(user.getId())));
     }
 
     @PostMapping("/signup")
-    public ResponseEntity<Void> signup(
+    public ResponseEntity<LoginResponse> signup(
         @RequestBody @Valid SignupRequest request,
         HttpServletRequest httpRequest
     ) {
         User user = authService.signup(request);
-        HttpSession session = httpRequest.getSession(true);
-        session.setAttribute(LOGIN_USER_ID, user.getId());
-        return ResponseEntity.created(URI.create("/users/" + user.getId())).build();
+        startSession(httpRequest, user);
+        return ResponseEntity
+            .created(URI.create("/users/" + user.getId()))
+            .body(LoginResponse.bearer(jwtTokenProvider.createAccessToken(user.getId())));
     }
 
     @PostMapping("/logout")
@@ -59,5 +62,10 @@ public class AuthController {
     @GetMapping("/login/check")
     public ResponseEntity<LoginCheckResponse> check(@Auth User user) {
         return ResponseEntity.ok(new LoginCheckResponse(user.getName()));
+    }
+
+    private void startSession(HttpServletRequest httpRequest, User user) {
+        HttpSession session = httpRequest.getSession(true);
+        session.setAttribute(LOGIN_USER_ID, user.getId());
     }
 }

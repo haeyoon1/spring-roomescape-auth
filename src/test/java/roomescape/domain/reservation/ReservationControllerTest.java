@@ -373,7 +373,7 @@ class ReservationControllerTest {
             .contentType(ContentType.JSON)
             .body(loginParams)
             .when().post("/login")
-            .then().statusCode(204)
+            .then().statusCode(200)
             .extract().sessionId();
     }
 

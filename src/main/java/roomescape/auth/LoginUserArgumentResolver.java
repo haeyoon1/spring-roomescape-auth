@@ -1,7 +1,6 @@
 package roomescape.auth;
 
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpSession;
 import org.springframework.core.MethodParameter;
 import org.springframework.web.bind.support.WebDataBinderFactory;
 import org.springframework.web.context.request.NativeWebRequest;
@@ -14,9 +13,14 @@ import roomescape.exception.RoomescapeException;
 
 public class LoginUserArgumentResolver implements HandlerMethodArgumentResolver {
 
+    private final AuthenticationResolver authenticationResolver;
     private final UserRepository userRepository;
 
-    public LoginUserArgumentResolver(UserRepository userRepository) {
+    public LoginUserArgumentResolver(
+        AuthenticationResolver authenticationResolver,
+        UserRepository userRepository
+    ) {
+        this.authenticationResolver = authenticationResolver;
         this.userRepository = userRepository;
     }
 
@@ -35,16 +39,7 @@ public class LoginUserArgumentResolver implements HandlerMethodArgumentResolver 
         if (request == null) {
             throw new RoomescapeException(ErrorCode.UNAUTHORIZED);
         }
-        HttpSession session = request.getSession(false);
-        if (session == null) {
-            throw new RoomescapeException(ErrorCode.UNAUTHORIZED);
-        }
-
-        Long userId = (Long) session.getAttribute(AuthController.LOGIN_USER_ID);
-        if (userId == null) {
-            throw new RoomescapeException(ErrorCode.UNAUTHORIZED);
-        }
-
+        Long userId = authenticationResolver.resolveUserId(request);
         return userRepository.findById(userId)
             .orElseThrow(() -> new RoomescapeException(ErrorCode.UNAUTHORIZED));
     }

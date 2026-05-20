@@ -14,9 +14,14 @@ import roomescape.domain.user.UserRepository;
 public class AuthenticationPrincipalConfig implements WebMvcConfigurer {
 
     private final UserRepository userRepository;
+    private final AuthenticationResolver authenticationResolver;
 
-    public AuthenticationPrincipalConfig(UserRepository userRepository) {
+    public AuthenticationPrincipalConfig(
+        UserRepository userRepository,
+        AuthenticationResolver authenticationResolver
+    ) {
         this.userRepository = userRepository;
+        this.authenticationResolver = authenticationResolver;
     }
 
     @Bean
@@ -26,11 +31,11 @@ public class AuthenticationPrincipalConfig implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(new LoginCheckInterceptor());
+        registry.addInterceptor(new LoginCheckInterceptor(authenticationResolver));
     }
 
     @Override
     public void addArgumentResolvers(List<HandlerMethodArgumentResolver> resolvers) {
-        resolvers.add(new LoginUserArgumentResolver(userRepository));
+        resolvers.add(new LoginUserArgumentResolver(authenticationResolver, userRepository));
     }
 }

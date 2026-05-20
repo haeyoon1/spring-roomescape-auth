@@ -2,14 +2,17 @@ package roomescape.auth;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.HttpSession;
 import org.springframework.core.MethodParameter;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
-import roomescape.exception.ErrorCode;
-import roomescape.exception.RoomescapeException;
 
 public class LoginCheckInterceptor implements HandlerInterceptor {
+
+    private final AuthenticationResolver authenticationResolver;
+
+    public LoginCheckInterceptor(AuthenticationResolver authenticationResolver) {
+        this.authenticationResolver = authenticationResolver;
+    }
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
@@ -19,11 +22,7 @@ public class LoginCheckInterceptor implements HandlerInterceptor {
         if (!requiresAuthentication(handlerMethod)) {
             return true;
         }
-
-        HttpSession session = request.getSession(false);
-        if (session == null || session.getAttribute(AuthController.LOGIN_USER_ID) == null) {
-            throw new RoomescapeException(ErrorCode.UNAUTHORIZED);
-        }
+        authenticationResolver.resolveUserId(request);
         return true;
     }
 

@@ -9,6 +9,7 @@ public enum ErrorCode {
 
     //403 - FORBIDDEN
     FORBIDDEN_RESERVATION(HttpStatus.FORBIDDEN, "해당 예약에 접근할 권한이 없습니다."),
+    FORBIDDEN_THEME(HttpStatus.FORBIDDEN, "해당 테마에 접근할 권한이 없습니다."),
 
     //404 - NOT_FOUND
     TIME_ID_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 time id를 찾을 수 없습니다."),

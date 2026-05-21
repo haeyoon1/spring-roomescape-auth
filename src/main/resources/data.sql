@@ -58,11 +58,11 @@ VALUES ('월야애담', '강남점의 대표 한국 전통 호러 테마.',
        ('NOSTALGIA', '추억을 자극하는 감성 테마.',
         'https://d1kqa23lh2nxjx.cloudfront.net/file/theme_info/nostalgia_sizedown.png', 2);
 
--- 매장 매니저 데이터
+-- 매장 매니저 데이터 (password = manager1 / manager2 / manager3, BCrypt 인코딩)
 INSERT INTO users (name, password, role, store_id)
-VALUES ('강남점매니저', 'manager1', 'MANAGER', 1),
-       ('홍대점매니저', 'manager2', 'MANAGER', 2),
-       ('혜화점매니저', 'manager3', 'MANAGER', 3);
+VALUES ('강남점매니저', '$2a$10$5MSXldvWOobZ7V46AWumM.hSGFBq2ujqC2R2KMUxcgYe7bWjcb7Ri', 'MANAGER', 1),
+       ('홍대점매니저', '$2a$10$bfTEjJTayT6G4INw66QrLu5CTBfX.8mp/qiR8IjAwQvOjJ1AzMXXO', 'MANAGER', 2),
+       ('혜화점매니저', '$2a$10$I7CugNCRmSCA2RN3UQpMkeQhapXMuySx7OjOl7z5hIaiBjE16bzbS', 'MANAGER', 3);
 
 -- 예약 데이터
 INSERT INTO reservation (name, date, time_id, theme_id)

@@ -13,6 +13,8 @@ import roomescape.admin.theme.dto.AdminThemeRequest;
 import roomescape.admin.theme.dto.AdminThemeResponse;
 
 import roomescape.admin.theme.dto.AdminThemesResponse;
+import roomescape.auth.Auth;
+import roomescape.domain.user.User;
 
 @RestController
 public class AdminThemeController {
@@ -25,9 +27,10 @@ public class AdminThemeController {
 
     @PostMapping("/admin/themes")
     public ResponseEntity<AdminThemeResponse> createTheme(
+        @Auth User user,
         @RequestBody @Valid AdminThemeRequest request
     ) {
-        AdminThemeResponse response = adminThemeService.createTheme(request);
+        AdminThemeResponse response = adminThemeService.createTheme(user, request);
         URI location = URI.create("/admin/themes/" + response.id());
         return ResponseEntity.created(location).body(response);
     }
@@ -40,9 +43,10 @@ public class AdminThemeController {
 
     @DeleteMapping("/admin/themes/{id}")
     public ResponseEntity<Void> deleteTheme(
+        @Auth User user,
         @PathVariable Long id
     ) {
-        adminThemeService.deleteTheme(id);
+        adminThemeService.deleteTheme(user, id);
         return ResponseEntity.noContent().build();
     }
 }

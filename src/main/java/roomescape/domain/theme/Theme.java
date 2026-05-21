@@ -1,5 +1,9 @@
 package roomescape.domain.theme;
 
+import roomescape.domain.user.User;
+import roomescape.exception.ErrorCode;
+import roomescape.exception.RoomescapeException;
+
 public class Theme {
     private final Long id;
     private final String name;
@@ -25,6 +29,12 @@ public class Theme {
 
     public static Theme of(String name, String description, String imageUrl, Long storeId) {
         return new Theme(null, name, description, imageUrl, storeId);
+    }
+
+    public void validateManagedBy(User user) {
+        if (!user.isManagerOf(storeId)) {
+            throw new RoomescapeException(ErrorCode.FORBIDDEN_THEME);
+        }
     }
 
     public Long getId() {

@@ -5,6 +5,7 @@ import roomescape.admin.theme.dto.AdminThemeRequest;
 import roomescape.admin.theme.dto.AdminThemeResponse;
 import roomescape.admin.theme.dto.AdminThemesResponse;
 import roomescape.domain.store.StoreRepository;
+import roomescape.domain.user.User;
 import roomescape.exception.ErrorCode;
 import roomescape.exception.RoomescapeException;
 import roomescape.domain.reservation.ReservationRepository;
@@ -29,7 +30,8 @@ public class AdminThemeService {
         this.storeRepository = storeRepository;
     }
 
-    public AdminThemeResponse createTheme(AdminThemeRequest request) {
+    public AdminThemeResponse createTheme(User user, AdminThemeRequest request) {
+        validateManagerOfStore(user, request.storeId());
         validateDuplicateTheme(request.name());
         validateStoreId(request.storeId());
         Theme theme = Theme.of(
@@ -41,6 +43,12 @@ public class AdminThemeService {
 
         Theme saved = adminThemeRepository.save(theme);
         return AdminThemeResponse.from(saved);
+    }
+
+    private void validateManagerOfStore(User user, Long storeId) {
+        if (!user.isManagerOf(storeId)) {
+            throw new RoomescapeException(ErrorCode.FORBIDDEN_THEME);
+        }
     }
 
     private void validateStoreId(Long storeId) {
@@ -57,16 +65,12 @@ public class AdminThemeService {
         return AdminThemesResponse.from(themes);
     }
 
-    public void deleteTheme(Long themeId) {
-        validateThemeId(themeId);
+    public void deleteTheme(User user, Long themeId) {
+        Theme theme = adminThemeRepository.findById(themeId)
+            .orElseThrow(() -> new RoomescapeException(ErrorCode.THEME_ID_NOT_FOUND));
+        theme.validateManagedBy(user);
         validateTimeDeletable(themeId);
         adminThemeRepository.deleteById(themeId);
-    }
-
-    private void validateThemeId(Long themeId) {
-        if (!adminThemeRepository.existsById(themeId)) {
-            throw new RoomescapeException(ErrorCode.THEME_ID_NOT_FOUND);
-        }
     }
 
     private void validateTimeDeletable(Long themeId) {

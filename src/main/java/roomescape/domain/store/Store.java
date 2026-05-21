@@ -14,10 +14,6 @@ public class Store {
         return new Store(id, name);
     }
 
-    public static Store of(String name) {
-        return new Store(null, name);
-    }
-
     public Long getId() {
         return id;
     }

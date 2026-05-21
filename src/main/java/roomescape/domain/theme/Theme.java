@@ -27,10 +27,6 @@ public class Theme {
         return new Theme(null, name, description, imageUrl, storeId);
     }
 
-    public static Theme of(String name, String description, String imageUrl) {
-        return new Theme(null, name, description, imageUrl, null);
-    }
-
     public Long getId() {
         return id;
     }

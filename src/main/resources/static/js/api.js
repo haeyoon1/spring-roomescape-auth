@@ -24,3 +24,17 @@ function redirectToLoginIfUnauthorized(err) {
   }
   return false;
 }
+
+function showForbiddenIfDenied(err) {
+  if (err && err.status === 403) {
+    alert(err.message || '해당 작업을 수행할 권한이 없습니다.');
+    return true;
+  }
+  return false;
+}
+
+function handleApiError(err) {
+  if (redirectToLoginIfUnauthorized(err)) return;
+  if (showForbiddenIfDenied(err)) return;
+  showError(err);
+}

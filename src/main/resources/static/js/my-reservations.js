@@ -18,18 +18,13 @@ function bootstrap() {
     })
     .then(times => { timesCache = times || []; })
     .then(loadMyReservations)
-    .catch(handleAuthError);
-}
-
-function handleAuthError(err) {
-  if (redirectToLoginIfUnauthorized(err)) return;
-  showError(err);
+    .catch(handleApiError);
 }
 
 function loadMyReservations() {
   return apiFetch(MY_RESERVATIONS_API)
     .then(data => renderReservations((data && data.reservations) || []))
-    .catch(handleAuthError);
+    .catch(handleApiError);
 }
 
 function renderReservations(reservations) {
@@ -108,7 +103,7 @@ function saveEdit(id, date, timeId) {
       alert('예약이 수정되었습니다.');
       loadMyReservations();
     })
-    .catch(showError);
+    .catch(handleApiError);
 }
 
 function deleteReservation(id, row) {
@@ -121,7 +116,7 @@ function deleteReservation(id, row) {
         document.getElementById('reservation-empty').classList.remove('d-none');
       }
     })
-    .catch(showError);
+    .catch(handleApiError);
 }
 
 function cell(text) {

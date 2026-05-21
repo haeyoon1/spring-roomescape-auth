@@ -181,8 +181,5 @@ function confirmBooking() {
       alert('예약이 완료되었습니다.');
       refreshTimes();
     })
-    .catch(err => {
-      if (redirectToLoginIfUnauthorized(err)) return;
-      showError(err);
-    });
+    .catch(handleApiError);
 }

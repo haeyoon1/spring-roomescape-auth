@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function fetchThemes() {
   apiFetch(THEME_API)
     .then(data => renderThemes(data.themes))
-    .catch(showError);
+    .catch(handleApiError);
 }
 
 function renderThemes(themes) {
@@ -44,6 +44,10 @@ function buildAdminCard(theme) {
   name.className = 'name';
   name.textContent = theme.name;
   body.appendChild(name);
+  const store = document.createElement('p');
+  store.className = 'desc';
+  store.textContent = theme.storeId != null ? `매장 #${theme.storeId}` : '매장 미지정';
+  body.appendChild(store);
   const desc = document.createElement('p');
   desc.className = 'desc';
   desc.textContent = theme.description || '';
@@ -72,16 +76,23 @@ function closeForm() {
   document.getElementById('new-name').value = '';
   document.getElementById('new-desc').value = '';
   document.getElementById('new-image').value = '';
+  document.getElementById('new-store-id').value = '';
 }
 
 function saveTheme() {
+  const storeIdRaw = document.getElementById('new-store-id').value.trim();
   const body = {
     name: document.getElementById('new-name').value.trim(),
     description: document.getElementById('new-desc').value.trim(),
-    imageUrl: document.getElementById('new-image').value.trim()
+    imageUrl: document.getElementById('new-image').value.trim(),
+    storeId: storeIdRaw === '' ? null : Number(storeIdRaw)
   };
   if (!body.name || !body.description) {
     alert('이름과 설명을 입력해주세요.');
+    return;
+  }
+  if (body.storeId !== null && (!Number.isInteger(body.storeId) || body.storeId <= 0)) {
+    alert('매장 ID는 1 이상의 정수여야 합니다.');
     return;
   }
   apiFetch(THEME_API, {
@@ -95,7 +106,7 @@ function saveTheme() {
       grid.appendChild(buildAdminCard(theme));
       closeForm();
     })
-    .catch(showError);
+    .catch(handleApiError);
 }
 
 function deleteTheme(id, cardEl) {
@@ -106,5 +117,5 @@ function deleteTheme(id, cardEl) {
       const grid = document.getElementById('theme-grid');
       if (!grid.children.length) document.getElementById('theme-empty').classList.remove('d-none');
     })
-    .catch(showError);
+    .catch(handleApiError);
 }

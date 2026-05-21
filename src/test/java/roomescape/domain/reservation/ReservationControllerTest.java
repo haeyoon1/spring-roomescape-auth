@@ -297,6 +297,102 @@ class ReservationControllerTest {
             .body(params)
             .when().patch("/reservation/" + reservationId)
             .then().log().all()
+            .statusCode(403);
+    }
+
+    @Test
+    void updateMyReservation_매장_매니저인경우_정상_수정_테스트() {
+        Long storeId = insertStore("강남점");
+        Long themeId = insertThemeInStore("테마1", storeId);
+        Long timeId1 = insertTime("10:00", "11:00");
+        Long timeId2 = insertTime("11:00", "12:00");
+        Long reservationId = insertReservation("유저1", "2099-12-30", timeId1, themeId);
+        insertManager("매니저1", "password", storeId);
+
+        Map<String, Object> params = new HashMap<>();
+        params.put("date", "2099-12-31");
+        params.put("timeId", timeId2);
+
+        String sessionId = login("매니저1", "password");
+
+        RestAssured.given().log().all()
+            .sessionId(sessionId)
+            .contentType(ContentType.JSON)
+            .body(params)
+            .when().patch("/reservation/" + reservationId)
+            .then().log().all()
+            .statusCode(204);
+    }
+
+    @Test
+    void updateMyReservation_다른_매장_매니저인경우_에러_반환_테스트() {
+        Long gangnam = insertStore("강남점");
+        Long hongdae = insertStore("홍대점");
+        Long themeId = insertThemeInStore("테마1", gangnam);
+        Long timeId = insertTime("10:00", "11:00");
+        Long reservationId = insertReservation("유저1", "2099-12-30", timeId, themeId);
+        insertManager("홍대매니저", "password", hongdae);
+
+        Map<String, Object> params = new HashMap<>();
+        params.put("date", "2099-12-31");
+        params.put("timeId", timeId);
+
+        String sessionId = login("홍대매니저", "password");
+
+        RestAssured.given().log().all()
+            .sessionId(sessionId)
+            .contentType(ContentType.JSON)
+            .body(params)
+            .when().patch("/reservation/" + reservationId)
+            .then().log().all()
+            .statusCode(403);
+    }
+
+    @Test
+    void deleteReservation_매장_매니저인경우_정상_삭제_테스트() {
+        Long storeId = insertStore("강남점");
+        Long themeId = insertThemeInStore("테마1", storeId);
+        Long timeId = insertTime("10:00", "11:00");
+        Long reservationId = insertReservation("유저1", "2099-12-31", timeId, themeId);
+        insertManager("매니저1", "password", storeId);
+
+        String sessionId = login("매니저1", "password");
+
+        RestAssured.given().log().all()
+            .sessionId(sessionId)
+            .when().delete("/reservation/" + reservationId)
+            .then().log().all()
+            .statusCode(204);
+
+        Integer count = jdbcTemplate.queryForObject(
+            "SELECT COUNT(*) FROM reservation WHERE id = ?", Integer.class, reservationId
+        );
+        assertEquals(0, count);
+    }
+
+    @Test
+    void deleteReservation_다른_매장_매니저인경우_에러_반환_테스트() {
+        Long gangnam = insertStore("강남점");
+        Long hongdae = insertStore("홍대점");
+        Long themeId = insertThemeInStore("테마1", gangnam);
+        Long timeId = insertTime("10:00", "11:00");
+        Long reservationId = insertReservation("유저1", "2099-12-31", timeId, themeId);
+        insertManager("홍대매니저", "password", hongdae);
+
+        String sessionId = login("홍대매니저", "password");
+
+        RestAssured.given().log().all()
+            .sessionId(sessionId)
+            .when().delete("/reservation/" + reservationId)
+            .then().log().all()
+            .statusCode(403);
+    }
+
+    @Test
+    void 인증되지_않은_사용자가_예약_삭제_요청시_에러_반환_테스트() {
+        RestAssured.given().log().all()
+            .when().delete("/reservation/999")
+            .then().log().all()
             .statusCode(401);
     }
 
@@ -384,10 +480,34 @@ class ReservationControllerTest {
         );
     }
 
+    private void insertManager(String name, String password, Long storeId) {
+        jdbcTemplate.update(
+            "INSERT INTO users (name, password, role, store_id) VALUES (?, ?, 'MANAGER', ?)",
+            name, passwordEncoder.encode(password), storeId
+        );
+    }
+
+    private Long insertStore(String name) {
+        jdbcTemplate.update("INSERT INTO store (name) VALUES (?)", name);
+        return jdbcTemplate.queryForObject(
+            "SELECT id FROM store WHERE name = ?", Long.class, name
+        );
+    }
+
     private Long insertTheme(String name) {
         jdbcTemplate.update(
             "INSERT INTO theme (name, description, image_url) VALUES (?, ?, ?)",
             name, "설명", "https://example.com/image.jpg"
+        );
+        return jdbcTemplate.queryForObject(
+            "SELECT id FROM theme WHERE name = ?", Long.class, name
+        );
+    }
+
+    private Long insertThemeInStore(String name, Long storeId) {
+        jdbcTemplate.update(
+            "INSERT INTO theme (name, description, image_url, store_id) VALUES (?, ?, ?, ?)",
+            name, "설명", "https://example.com/image.jpg", storeId
         );
         return jdbcTemplate.queryForObject(
             "SELECT id FROM theme WHERE name = ?", Long.class, name

@@ -18,6 +18,7 @@ import roomescape.admin.theme.dto.AdminThemeRequest;
 import roomescape.admin.theme.dto.AdminThemeResponse;
 import roomescape.admin.theme.dto.AdminThemesResponse;
 import roomescape.domain.reservation.ReservationRepository;
+import roomescape.domain.store.StoreRepository;
 import roomescape.domain.theme.Theme;
 import roomescape.exception.ErrorCode;
 import roomescape.exception.RoomescapeException;
@@ -31,12 +32,15 @@ class AdminThemeServiceTest {
     @Mock
     private ReservationRepository reservationRepository;
 
+    @Mock
+    private StoreRepository storeRepository;
+
     @InjectMocks
     private AdminThemeService adminThemeService;
 
     @Test
     void createTheme_정상_생성() {
-        AdminThemeRequest request = new AdminThemeRequest("테마1", "설명", "https://example.com/image.jpg");
+        AdminThemeRequest request = new AdminThemeRequest("테마1", "설명", "https://example.com/image.jpg", null);
         Theme saved = Theme.of(1L, "테마1", "설명", "https://example.com/image.jpg");
 
         when(adminThemeRepository.existsByName("테마1")).thenReturn(false);
@@ -51,13 +55,25 @@ class AdminThemeServiceTest {
 
     @Test
     void createTheme_중복된_이름이면_예외() {
-        AdminThemeRequest request = new AdminThemeRequest("테마1", "설명", "https://example.com/image.jpg");
+        AdminThemeRequest request = new AdminThemeRequest("테마1", "설명", "https://example.com/image.jpg", null);
 
         when(adminThemeRepository.existsByName("테마1")).thenReturn(true);
 
         assertThatThrownBy(() -> adminThemeService.createTheme(request))
             .isInstanceOf(RoomescapeException.class)
             .extracting("errorCode").isEqualTo(ErrorCode.DUPLICATE_RESERVATION_NAME);
+    }
+
+    @Test
+    void createTheme_존재하지_않는_storeId면_예외() {
+        AdminThemeRequest request = new AdminThemeRequest("테마1", "설명", "https://example.com/image.jpg", 999L);
+
+        when(adminThemeRepository.existsByName("테마1")).thenReturn(false);
+        when(storeRepository.findById(999L)).thenReturn(java.util.Optional.empty());
+
+        assertThatThrownBy(() -> adminThemeService.createTheme(request))
+            .isInstanceOf(RoomescapeException.class)
+            .extracting("errorCode").isEqualTo(ErrorCode.STORE_ID_NOT_FOUND);
     }
 
     @Test

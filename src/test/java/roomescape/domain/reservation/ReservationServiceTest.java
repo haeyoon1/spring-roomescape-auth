@@ -28,6 +28,7 @@ import roomescape.domain.reservationtime.ReservationTime;
 import roomescape.domain.reservationtime.ReservationTimeRepository;
 import roomescape.domain.reservationtime.dto.TimeResponse;
 import roomescape.domain.theme.Theme;
+import roomescape.domain.user.Role;
 import roomescape.domain.user.User;
 import roomescape.exception.ErrorCode;
 import roomescape.exception.RoomescapeException;
@@ -55,7 +56,7 @@ class ReservationServiceTest {
     @BeforeEach
     void setUp() {
         time = ReservationTime.of(1L, LocalTime.of(10, 0), LocalTime.of(11, 0));
-        theme = Theme.of(1L, "테마1", "설명", "https://example.com/image.jpg");
+        theme = Theme.of(1L, "테마1", "설명", "https://example.com/image.jpg", 1L);
         user = User.of(1L, "유저1", "password1");
         other = User.of(2L, "다른유저", "password2");
     }
@@ -187,7 +188,29 @@ class ReservationServiceTest {
 
             assertThatThrownBy(() -> reservationService.deleteReservation(other, 1L))
                 .isInstanceOf(RoomescapeException.class)
-                .extracting("errorCode").isEqualTo(ErrorCode.UNAUTHORIZED_NAME);
+                .extracting("errorCode").isEqualTo(ErrorCode.FORBIDDEN_RESERVATION);
+        }
+
+        @Test
+        void 같은_매장_매니저면_정상_삭제() {
+            Reservation reservation = Reservation.of(1L, "유저1", LocalDate.of(2099, 12, 31), time, theme);
+            User manager = User.of(3L, "강남매니저", "password", Role.MANAGER, 1L);
+            when(reservationRepository.findById(1L)).thenReturn(Optional.of(reservation));
+
+            reservationService.deleteReservation(manager, 1L);
+
+            verify(reservationRepository, times(1)).deleteById(1L);
+        }
+
+        @Test
+        void 다른_매장_매니저면_예외() {
+            Reservation reservation = Reservation.of(1L, "유저1", LocalDate.of(2099, 12, 31), time, theme);
+            User manager = User.of(4L, "홍대매니저", "password", Role.MANAGER, 2L);
+            when(reservationRepository.findById(1L)).thenReturn(Optional.of(reservation));
+
+            assertThatThrownBy(() -> reservationService.deleteReservation(manager, 1L))
+                .isInstanceOf(RoomescapeException.class)
+                .extracting("errorCode").isEqualTo(ErrorCode.FORBIDDEN_RESERVATION);
         }
     }
 
@@ -270,7 +293,7 @@ class ReservationServiceTest {
 
             assertThatThrownBy(() -> reservationService.updateMyReservation(other, 1L, request))
                 .isInstanceOf(RoomescapeException.class)
-                .extracting("errorCode").isEqualTo(ErrorCode.UNAUTHORIZED_NAME);
+                .extracting("errorCode").isEqualTo(ErrorCode.FORBIDDEN_RESERVATION);
         }
 
         @Test

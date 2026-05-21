@@ -71,14 +71,14 @@ public class ReservationService {
     public void deleteReservation(User user, Long id) {
         Reservation reservation = reservationRepository.findById(id)
             .orElseThrow(() -> new RoomescapeException(ErrorCode.RESERVATION_ID_NOT_FOUND));
-        reservation.validateOwner(user.getName());
+        reservation.validateAccessibleBy(user);
         reservationRepository.deleteById(id);
     }
 
     public void updateMyReservation(User user, Long id, ReservationFixRequest fixRequest) {
         Reservation reservation = reservationRepository.findById(id)
             .orElseThrow(() -> new RoomescapeException(ErrorCode.RESERVATION_ID_NOT_FOUND));
-        reservation.validateOwner(user.getName());
+        reservation.validateAccessibleBy(user);
         validateFixRequest(reservation.getTheme(), fixRequest);
 
         reservationRepository.updateDateAndTime(id, fixRequest.date(), fixRequest.timeId());

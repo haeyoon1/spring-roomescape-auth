@@ -3,6 +3,8 @@ package roomescape.domain.reservation;
 import java.time.LocalDate;
 import roomescape.domain.theme.Theme;
 import roomescape.domain.reservationtime.ReservationTime;
+import roomescape.domain.user.Role;
+import roomescape.domain.user.User;
 import roomescape.exception.ErrorCode;
 import roomescape.exception.RoomescapeException;
 
@@ -30,9 +32,15 @@ public class Reservation {
         return new Reservation(null, name, date, time, theme);
     }
 
-    public void validateOwner(String newRequestOwner) {
-        if (!name.equals(newRequestOwner)) {
-            throw new RoomescapeException(ErrorCode.UNAUTHORIZED_NAME);
+    public void validateAccessibleBy(User user) {
+        if (user.getRole() == Role.MANAGER) {
+            if (!user.isManagerOf(theme.getStoreId())) {
+                throw new RoomescapeException(ErrorCode.FORBIDDEN_RESERVATION);
+            }
+            return;
+        }
+        if (!name.equals(user.getName())) {
+            throw new RoomescapeException(ErrorCode.FORBIDDEN_RESERVATION);
         }
     }
 

@@ -19,22 +19,29 @@ public class ReservationRepository {
     private final JdbcTemplate jdbcTemplate;
     private final SimpleJdbcInsert simpleJdbcInsert;
 
-    private final RowMapper<Reservation> rowMapper = (resultSet, rowNum) -> Reservation.of(
-        resultSet.getLong("reservation_id"),
-        resultSet.getString("name"),
-        resultSet.getDate("date").toLocalDate(),
-        ReservationTime.of(
-            resultSet.getLong("time_id"),
-            resultSet.getTime("time_start_at").toLocalTime(),
-            resultSet.getTime("time_finish_at").toLocalTime()
-        ),
-        Theme.of(
-            resultSet.getLong("theme_id"),
-            resultSet.getString("theme_name"),
-            resultSet.getString("theme_description"),
-            resultSet.getString("theme_image_url")
-        )
-    );
+    private final RowMapper<Reservation> rowMapper = (resultSet, rowNum) -> {
+        Long themeStoreId = resultSet.getLong("theme_store_id");
+        if (resultSet.wasNull()) {
+            themeStoreId = null;
+        }
+        return Reservation.of(
+            resultSet.getLong("reservation_id"),
+            resultSet.getString("name"),
+            resultSet.getDate("date").toLocalDate(),
+            ReservationTime.of(
+                resultSet.getLong("time_id"),
+                resultSet.getTime("time_start_at").toLocalTime(),
+                resultSet.getTime("time_finish_at").toLocalTime()
+            ),
+            Theme.of(
+                resultSet.getLong("theme_id"),
+                resultSet.getString("theme_name"),
+                resultSet.getString("theme_description"),
+                resultSet.getString("theme_image_url"),
+                themeStoreId
+            )
+        );
+    };
 
     private final RowMapper<Long> timeMapper = (resultSet, rowNum) ->
         resultSet.getLong("time_id");
@@ -47,7 +54,7 @@ public class ReservationRepository {
         resultSet.getString("name"),
         resultSet.getDate("date").toLocalDate(),
         ReservationTime.of(null, resultSet.getTime("time_start_at").toLocalTime(), null),
-        Theme.of(null, resultSet.getString("theme_name"), null, null)
+        Theme.of((Long) null, resultSet.getString("theme_name"), null, null)
     );
 
     public ReservationRepository(JdbcTemplate jdbcTemplate) {
@@ -102,16 +109,6 @@ public class ReservationRepository {
         return count != null && count > 0;
     }
 
-    public boolean existsById(Long id) {
-        String query = """
-            SELECT COUNT(*)
-            FROM reservation
-            WHERE id = ?
-            """;
-        Integer count = jdbcTemplate.queryForObject(query, Integer.class, id);
-        return count != null && count > 0;
-    }
-
     public List<Long> findThemeIdTop10(LocalDate startDate, LocalDate endDate) {
         String query = """
             SELECT r.theme_id AS theme_id
@@ -144,7 +141,7 @@ public class ReservationRepository {
             SELECT r.id AS reservation_id, r.name, r.date,
                    t.id AS time_id, t.start_at AS time_start_at, t.finish_at AS time_finish_at,
                    th.id AS theme_id, th.name AS theme_name, th.description AS theme_description,
-                   th.image_url AS theme_image_url
+                   th.image_url AS theme_image_url, th.store_id AS theme_store_id
             FROM reservation r
             JOIN reservation_time t ON r.time_id = t.id
             JOIN theme th ON r.theme_id = th.id

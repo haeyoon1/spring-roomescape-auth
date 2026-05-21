@@ -14,11 +14,19 @@ public class UserRepository {
     private final JdbcTemplate jdbcTemplate;
     private final SimpleJdbcInsert simpleJdbcInsert;
 
-    private final RowMapper<User> rowMapper = (rs, rowNum) -> User.of(
-        rs.getLong("id"),
-        rs.getString("name"),
-        rs.getString("password")
-    );
+    private final RowMapper<User> rowMapper = (rs, rowNum) -> {
+        Long storeId = rs.getLong("store_id");
+        if (rs.wasNull()) {
+            storeId = null;
+        }
+        return User.of(
+            rs.getLong("id"),
+            rs.getString("name"),
+            rs.getString("password"),
+            Role.valueOf(rs.getString("role")),
+            storeId
+        );
+    };
 
     public UserRepository(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
@@ -30,18 +38,20 @@ public class UserRepository {
     public User save(User user) {
         SqlParameterSource parameters = new MapSqlParameterSource()
             .addValue("name", user.getName())
-            .addValue("password", user.getPassword());
+            .addValue("password", user.getPassword())
+            .addValue("role", user.getRole().name())
+            .addValue("store_id", user.getStoreId());
         Long id = simpleJdbcInsert.executeAndReturnKey(parameters).longValue();
-        return User.of(id, user.getName(), user.getPassword());
+        return User.of(id, user.getName(), user.getPassword(), user.getRole(), user.getStoreId());
     }
 
     public Optional<User> findById(Long id) {
-        String query = "SELECT id, name, password FROM users WHERE id = ?";
+        String query = "SELECT id, name, password, role, store_id FROM users WHERE id = ?";
         return jdbcTemplate.query(query, rowMapper, id).stream().findFirst();
     }
 
     public Optional<User> findByName(String name) {
-        String query = "SELECT id, name, password FROM users WHERE name = ?";
+        String query = "SELECT id, name, password, role, store_id FROM users WHERE name = ?";
         return jdbcTemplate.query(query, rowMapper, name).stream().findFirst();
     }
 

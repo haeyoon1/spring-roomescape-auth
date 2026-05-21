@@ -14,12 +14,19 @@ public class ThemeRepository {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    private final RowMapper<Theme> rowMapper = (resultSet, rowNum) -> Theme.of(
-        resultSet.getLong("id"),
-        resultSet.getString("name"),
-        resultSet.getString("description"),
-        resultSet.getString("image_url")
-    );
+    private final RowMapper<Theme> rowMapper = (resultSet, rowNum) -> {
+        Long storeId = resultSet.getLong("store_id");
+        if (resultSet.wasNull()) {
+            storeId = null;
+        }
+        return Theme.of(
+            resultSet.getLong("id"),
+            resultSet.getString("name"),
+            resultSet.getString("description"),
+            resultSet.getString("image_url"),
+            storeId
+        );
+    };
 
     public Theme findById(Long id) {
         String query = "select * from theme where id = ?";

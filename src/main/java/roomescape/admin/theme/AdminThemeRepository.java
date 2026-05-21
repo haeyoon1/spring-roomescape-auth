@@ -24,20 +24,28 @@ public class AdminThemeRepository {
             .usingGeneratedKeyColumns("id");
     }
 
-    private final RowMapper<Theme> rowMapper = (resultSet, rowNum) -> Theme.of(
-        resultSet.getLong("id"),
-        resultSet.getString("name"),
-        resultSet.getString("description"),
-        resultSet.getString("image_url")
-    );
+    private final RowMapper<Theme> rowMapper = (resultSet, rowNum) -> {
+        Long storeId = resultSet.getLong("store_id");
+        if (resultSet.wasNull()) {
+            storeId = null;
+        }
+        return Theme.of(
+            resultSet.getLong("id"),
+            resultSet.getString("name"),
+            resultSet.getString("description"),
+            resultSet.getString("image_url"),
+            storeId
+        );
+    };
 
     public Theme save(Theme theme) {
         SqlParameterSource parameters = new MapSqlParameterSource()
             .addValue("name", theme.getName())
             .addValue("description", theme.getDescription())
-            .addValue("image_url", theme.getImageUrl());
+            .addValue("image_url", theme.getImageUrl())
+            .addValue("store_id", theme.getStoreId());
         Long id = simpleJdbcInsert.executeAndReturnKey(parameters).longValue();
-        return Theme.of(id, theme.getName(), theme.getDescription(), theme.getImageUrl());
+        return Theme.of(id, theme.getName(), theme.getDescription(), theme.getImageUrl(), theme.getStoreId());
     }
 
     public void deleteById(Long id) {

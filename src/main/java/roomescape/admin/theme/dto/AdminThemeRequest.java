@@ -12,7 +12,9 @@ public record AdminThemeRequest(
     String description,
 
     @Size(max = 255, message = "URL은 255자를 초과할 수 없습니다.")
-    String imageUrl
+    String imageUrl,
+
+    Long storeId
 ) {
 
 }

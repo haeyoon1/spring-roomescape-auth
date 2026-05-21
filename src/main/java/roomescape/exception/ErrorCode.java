@@ -3,19 +3,18 @@ package roomescape.exception;
 import org.springframework.http.HttpStatus;
 
 public enum ErrorCode {
-    //400 - BAD_REQUEST
-    INVALID_RESERVATION_REQUEST(HttpStatus.BAD_REQUEST, "유효하지 않은 입력값 입니다."),
-    MISSING_NAME(HttpStatus.BAD_REQUEST, "이름은 필수 입력 값입니다."),
-
-    //401 - UNAUTHORIZED
-    UNAUTHORIZED_NAME(HttpStatus.UNAUTHORIZED, "해당 예약을 삭제할 권한이 없습니다."),
+    //401 - UNAUTHORIZED (인증 실패)
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다."),
     LOGIN_FAILED(HttpStatus.UNAUTHORIZED, "아이디 또는 비밀번호가 일치하지 않습니다."),
+
+    //403 - FORBIDDEN
+    FORBIDDEN_RESERVATION(HttpStatus.FORBIDDEN, "해당 예약에 접근할 권한이 없습니다."),
 
     //404 - NOT_FOUND
     TIME_ID_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 time id를 찾을 수 없습니다."),
     THEME_ID_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 theme id를 찾을 수 없습니다."),
     RESERVATION_ID_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 reservation id를 찾을 수 없습니다."),
+    STORE_ID_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 store id를 찾을 수 없습니다."),
 
     //409 - CONFLICT
     DUPLICATE_RESERVATION(HttpStatus.CONFLICT, "이미 선택된 예약입니다."),

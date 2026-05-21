@@ -4,6 +4,7 @@ import org.springframework.stereotype.Service;
 import roomescape.admin.theme.dto.AdminThemeRequest;
 import roomescape.admin.theme.dto.AdminThemeResponse;
 import roomescape.admin.theme.dto.AdminThemesResponse;
+import roomescape.domain.store.StoreRepository;
 import roomescape.exception.ErrorCode;
 import roomescape.exception.RoomescapeException;
 import roomescape.domain.reservation.ReservationRepository;
@@ -16,17 +17,21 @@ public class AdminThemeService {
 
     private final AdminThemeRepository adminThemeRepository;
     private final ReservationRepository reservationRepository;
+    private final StoreRepository storeRepository;
 
     public AdminThemeService(
         AdminThemeRepository adminThemeRepository,
-        ReservationRepository reservationRepository
+        ReservationRepository reservationRepository,
+        StoreRepository storeRepository
     ) {
         this.adminThemeRepository = adminThemeRepository;
         this.reservationRepository = reservationRepository;
+        this.storeRepository = storeRepository;
     }
 
     public AdminThemeResponse createTheme(AdminThemeRequest request) {
         validateDuplicateTheme(request.name());
+        validateStoreId(request.storeId());
         Theme theme = Theme.of(
             request.name(),
             request.description(),
@@ -36,6 +41,14 @@ public class AdminThemeService {
 
         Theme saved = adminThemeRepository.save(theme);
         return AdminThemeResponse.from(saved);
+    }
+
+    private void validateStoreId(Long storeId) {
+        if (storeId == null) {
+            return;
+        }
+        storeRepository.findById(storeId)
+            .orElseThrow(() -> new RoomescapeException(ErrorCode.STORE_ID_NOT_FOUND));
     }
 
     public AdminThemesResponse getAllThemes() {
